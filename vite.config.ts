@@ -1,36 +1,44 @@
-import { VitePWA } from 'vite-plugin-pwa';
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react-swc";
+import path from "path";
+import { componentTagger } from "lovable-tagger";
+import { VitePWA } from "vite-plugin-pwa";
 
 // https://vitejs.dev/config/
-export default defineConfig({
-  plugins: [react(), VitePWA({
-    registerType: 'autoUpdate',
-    injectRegister: false,
-
-    pwaAssets: {
-      disabled: false,
-      config: true,
+export default defineConfig(({ mode }) => ({
+  server: {
+    host: "::",
+    port: 8080,
+    hmr: {
+      overlay: false,
     },
-
-    manifest: {
-      name: 'Plain2TeX',
-      short_name: 'EQ2TeX',
-      description: 'Convert plain-text math expressions to professionally typeset LaTeX instantly. Export as PNG or SVG with one click.',
-      theme_color: '#0e69ff',
+  },
+  plugins: [
+    react(),
+    mode === "development" && componentTagger(),
+    VitePWA({
+      registerType: "autoUpdate",
+      includeAssets: ["favicon.ico", "icon-192.png", "icon-512.png"],
+      manifest: {
+        name: "Equation Formatter",
+        short_name: "EqFormat",
+        description: "Type plain-text math and get typeset LaTeX formulas instantly.",
+        theme_color: "#0055FF",
+        background_color: "#F8F8F8",
+        display: "standalone",
+        start_url: "/",
+        icons: [
+          { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
+          { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" },
+        ],
+      },
+    }),
+  ].filter(Boolean),
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+      "react": path.resolve(__dirname, "./node_modules/react"),
+      "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
     },
-
-    workbox: {
-      globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
-      cleanupOutdatedCaches: true,
-      clientsClaim: true,
-    },
-
-    devOptions: {
-      enabled: false,
-      navigateFallback: 'index.html',
-      suppressWarnings: true,
-      type: 'module',
-    },
-  })],
-})
+  },
+}));
