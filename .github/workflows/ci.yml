@@ -56,9 +56,14 @@ jobs:
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Sync with remote
+        run: |
+          git fetch origin
+          git rebase --autostash origin/main
+    
       - name: 🎨 Format code
         run: pnpm format
-
+  
       - uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: 'chore(format): auto-format files'
@@ -83,10 +88,15 @@ jobs:
 
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
+      
+      - name: Sync with remote
+        run: |
+          git fetch origin
+          git rebase --autostash origin/main
 
       - name: 🔠 Lint
         run: pnpm lint
-
+    
       - uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: 'chore(lint): auto-fix lint issues'
