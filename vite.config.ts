@@ -1,44 +1,75 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react-swc";
-import path from "path";
-import { componentTagger } from "lovable-tagger";
-import { VitePWA } from "vite-plugin-pwa";
+import tailwindcss from '@tailwindcss/vite'
+import react from '@vitejs/plugin-react'
+import { fileURLToPath, URL } from 'node:url'
+import AutoImport from 'unplugin-auto-import/vite'
+import { defineConfig } from 'vite'
+import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
-  server: {
-    host: "::",
-    port: 8080,
-    hmr: {
-      overlay: false,
-    },
-  },
+export default defineConfig({
   plugins: [
-    react(),
-    mode === "development" && componentTagger(),
+    // https://github.com/unplugin/unplugin-auto-import
+    AutoImport({
+      include: [/\.[tj]sx?$/],
+      imports: ['react', 'react-router-dom'],
+      dirs: ['src/hooks', 'src/lib', 'src/contexts'],
+      dirsScanOptions: {
+        filePatterns: ['*.ts'],
+        types: true,
+      },
+      dts: 'src/auto-imports.d.ts',
+    }),
+
+    // https://github.com/antfu/vite-plugin-pwa
     VitePWA({
-      registerType: "autoUpdate",
-      includeAssets: ["favicon.ico", "icon-192.png", "icon-512.png"],
+      registerType: 'autoUpdate',
+
+      pwaAssets: {
+        disabled: false,
+        config: true,
+      },
+
       manifest: {
-        name: "Equation Formatter",
-        short_name: "EqFormat",
-        description: "Type plain-text math and get typeset LaTeX formulas instantly.",
-        theme_color: "#0055FF",
-        background_color: "#F8F8F8",
-        display: "standalone",
-        start_url: "/",
-        icons: [
-          { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
-          { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" },
-        ],
+        name: 'Plain2TeX',
+        short_name: 'EQ2TeX',
+        description:
+          'Convert plain-text math expressions to professionally typeset LaTeX instantly. Export as PNG or SVG with one click.',
+
+        start_url: '/',
+        scope: '/',
+        id: '/',
+
+        display: 'standalone',
+        orientation: 'portrait',
+
+        theme_color: '#0e69ff',
+        background_color: '#09090b',
+
+        lang: 'en-US',
+        dir: 'ltr',
+
+        categories: ['education', 'productivity', 'utilities'],
+      },
+
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,woff2,svg,png,ico}'],
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
       },
     }),
-  ].filter(Boolean),
+
+    tailwindcss(),
+    react(),
+  ],
+
+  server: {
+    port: 3000,
+  },
+
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
-      "react": path.resolve(__dirname, "./node_modules/react"),
-      "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
+      '@': fileURLToPath(new URL('src', import.meta.url)),
+      components: fileURLToPath(new URL('src/components', import.meta.url)),
     },
   },
-}));
+})
