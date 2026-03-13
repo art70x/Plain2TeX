@@ -10,19 +10,19 @@
 
 **Core Features**
 
-* **Instant LaTeX Conversion**: Type plain math expressions and see them rendered live.
-* **Export Options**: Copy LaTeX, export as PNG or SVG with a single click.
-* **Live Preview**: WYSIWYG preview with proper formatting and scaling.
-* **Responsive UI**: Works seamlessly on desktop and mobile; side-by-side editor + preview or tab-based layout.
-* **Privacy-First**: 100% client-side; your data never leaves your browser.
-* **Keyboard Shortcuts / Hotkeys**: Perform common actions faster without leaving the keyboard.
+- **Instant LaTeX Conversion**: Type plain math expressions and see them rendered live.
+- **Export Options**: Copy LaTeX, export as PNG or SVG with a single click.
+- **Live Preview**: WYSIWYG preview with proper formatting and scaling.
+- **Responsive UI**: Works seamlessly on desktop and mobile; side-by-side editor + preview or tab-based layout.
+- **Privacy-First**: 100% client-side; your data never leaves your browser.
+- **Keyboard Shortcuts / Hotkeys**: Perform common actions faster without leaving the keyboard.
 
 **Advanced Features**
 
-* **Customizable Settings**: Adjust rendering, font size, and theme via settings panel.
-* **PWA Support**: Installable and works offline.
-* **Lightweight & Fast**: Minimal dependencies for snappy performance.
-* **Accessibility Friendly**: Keyboard navigation and screen-reader compatible.
+- **Customizable Settings**: Adjust rendering, font size, and theme via settings panel.
+- **PWA Support**: Installable and works offline.
+- **Lightweight & Fast**: Minimal dependencies for snappy performance.
+- **Accessibility Friendly**: Keyboard navigation and screen-reader compatible.
 
 ## ⌨️ Keyboard Shortcuts / Hotkeys
 
