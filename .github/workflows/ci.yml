@@ -7,6 +7,7 @@ on:
     branches: [main]
   merge_group:
 
+# cancel in-progress runs on new commits to same PR
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
@@ -27,7 +28,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: lts/*
-          cache: pnpm
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -51,7 +51,6 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: lts/*
-          cache: pnpm
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -59,16 +58,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Sync with main
-        run: |
-          git fetch origin
-          git rebase --autostash origin/main
+      - name: Lint & auto-fix
+        run: pnpm lint --fix
 
       - name: Format code
         run: pnpm format
-
-      - name: Lint & auto-fix
-        run: pnpm lint --fix
 
       - name: Commit fixes
         uses: stefanzweifel/git-auto-commit-action@v7
