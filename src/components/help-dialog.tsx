@@ -28,21 +28,19 @@ const HelpDialog = forwardRef<HTMLButtonElement>(function HelpDialog(_, referenc
           <Kbd className="hidden sm:flex">{formatShortcut('Mod+/')}</Kbd>
         </Button>
       </DialogTrigger>
-
       <DialogContent className="max-w-md border border-border bg-card p-0 shadow-2xl">
         <DialogHeader className="flex flex-row items-center gap-2 border-b border-border px-6 py-4">
           <Keyboard size={18} className="text-muted-foreground" />
           <DialogTitle className="text-sm font-bold tracking-[0.15em] uppercase">
             Keyboard Shortcuts
           </DialogTitle>
-          {/* Satisfies Radix's DialogDescription requirement without visible text */}
           <DialogDescription className="sr-only">
             A list of keyboard shortcuts and syntax reference for the equation formatter.
           </DialogDescription>
         </DialogHeader>
 
-        {/* Shortcuts List */}
         <ScrollArea className="max-h-[60vh]">
+          {/* Shortcuts */}
           <div className="space-y-2 px-6 py-4">
             {shortcutDefinitions.map((s) => (
               <div key={s.hotkey} className="flex items-center justify-between py-2">
@@ -55,19 +53,58 @@ const HelpDialog = forwardRef<HTMLButtonElement>(function HelpDialog(_, referenc
           </div>
 
           {/* Syntax Reference */}
-          <div className="border-t border-border px-6 py-4">
-            <h3 className="mb-3 text-xs font-bold tracking-[0.15em] text-muted-foreground uppercase">
+          <div className="space-y-5 border-t border-border px-6 py-4">
+            <h3 className="text-xs font-bold tracking-[0.15em] text-muted-foreground uppercase">
               Syntax Reference
             </h3>
-            <div className="space-y-1.5 text-sm">
-              <Row left="a/b" right="Fraction" />
-              <Row left="x^2" right="Exponent" />
-              <Row left="sqrt(x)" right="Square root" />
-              <Row left="sin cos log ln" right="Functions" />
-              <Row left="pi theta alpha" right="Greek letters" />
+
+            <Section title="Structure">
+              <Row left="a/b" right="Fraction → \frac{a}{b}" />
+              <Row left="a*b/c" right="Full numerator → \frac{a·b}{c}" />
+              <Row left="x^2" right="Superscript" />
               <Row left="x_1" right="Subscript" />
-              <Row left="2x" right="Implicit multiply" />
-            </div>
+              <Row left="x_1^2" right="Subscript + superscript" />
+              <Row left="sqrt(x)" right="Square root" />
+            </Section>
+
+            <Section title="Operators">
+              <Row left="+" right="Add" />
+              <Row left="-" right="Subtract / unary negate" />
+              <Row left="*" right="Multiply → ×" />
+              <Row left="2x  2(x+1)" right="Implicit multiply → ·" />
+              <Row left="+-" right="Plus-minus → ±" />
+              <Row left="=" right="Equals" />
+              <Row left="<  >" right="Inequalities" />
+              <Row left="<=  >=" right="≤  ≥" />
+              <Row left="!=" right="Not equal → ≠" />
+            </Section>
+
+            <Section title="Functions">
+              <Row left="sin cos tan" right="Basic trig" />
+              <Row left="cot sec csc" right="Reciprocal trig" />
+              <Row left="arcsin arccos arctan" right="Inverse trig" />
+              <Row left="log  ln" right="Logarithms" />
+              <Row left="exp" right="Exponential" />
+              <Row left="lim  sum  prod" right="Limit, sum, product" />
+              <Row left="int" right="Integral" />
+            </Section>
+
+            <Section title="Constants">
+              <Row left="pi" right="π" />
+              <Row left="e" right="Euler's number" />
+              <Row left="inf  infinity" right="∞" />
+            </Section>
+
+            <Section title="Greek Letters">
+              <Row left="alpha  beta  gamma" right="α  β  γ" />
+              <Row left="delta  epsilon  zeta" right="δ  ε  ζ" />
+              <Row left="eta  theta  iota" right="η  θ  ι" />
+              <Row left="kappa  lambda  mu" right="κ  λ  μ" />
+              <Row left="nu  xi  rho" right="ν  ξ  ρ" />
+              <Row left="sigma  tau  upsilon" right="σ  τ  υ" />
+              <Row left="phi  chi  psi  omega" right="φ  χ  ψ  ω" />
+              <Row left="Uppercase (e.g. Sigma)" right="Capitalise the word" />
+            </Section>
           </div>
         </ScrollArea>
 
@@ -82,13 +119,22 @@ const HelpDialog = forwardRef<HTMLButtonElement>(function HelpDialog(_, referenc
   )
 })
 
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{title}</p>
+      <div className="space-y-1.5 text-sm">{children}</div>
+    </div>
+  )
+}
+
 function Row({ left, right }: { left: string; right: string }) {
   return (
-    <div className="flex items-center justify-between">
-      <code className="border border-border bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
+    <div className="flex items-center justify-between gap-4">
+      <code className="border border-border bg-muted px-1.5 py-0.5 font-mono text-xs whitespace-nowrap text-foreground">
         {left}
       </code>
-      <span className="text-xs text-muted-foreground">{right}</span>
+      <span className="text-right text-xs text-muted-foreground">{right}</span>
     </div>
   )
 }

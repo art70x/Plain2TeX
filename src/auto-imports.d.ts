@@ -65,7 +65,7 @@ declare global {
   // @ts-ignore
   export type { Shortcut } from './hooks/use-hotkeys'
   // @ts-ignore
-  export type { ParseResult } from './lib/math-parser'
+  export type { ParseOptions, ParseResult } from './lib/math-parser'
   import('./hooks/use-hotkeys')
   import('./lib/math-parser')
 }
