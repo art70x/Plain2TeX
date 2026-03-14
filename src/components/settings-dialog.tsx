@@ -1,3 +1,6 @@
+import { Download, Moon, Palette, Settings, Sun, Type } from 'lucide-react'
+import { forwardRef } from 'react'
+
 import { Button } from '@/components/animate-ui/components/buttons/button'
 import {
   Dialog,
@@ -14,8 +17,6 @@ import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useSettings } from '@/contexts/settings-context'
 import { formatShortcut } from '@/hooks/use-hotkeys'
-import { Download, Moon, Palette, Settings, Sun, Type } from 'lucide-react'
-import { forwardRef } from 'react'
 
 const fontSizes = [
   { value: '1', label: 'S' },

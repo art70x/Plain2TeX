@@ -1,8 +1,9 @@
 'use client'
 
-import { cn } from '@/lib/utils'
 import { isMotionComponent, motion, type HTMLMotionProps } from 'motion/react'
 import * as React from 'react'
+
+import { cn } from '@/lib/utils'
 
 type AnyProps = Record<string, unknown>
 

@@ -1,3 +1,6 @@
+import { HelpCircle, Keyboard } from 'lucide-react'
+import { forwardRef } from 'react'
+
 import { Button } from '@/components/animate-ui/components/buttons/button'
 import {
   Dialog,
@@ -10,8 +13,6 @@ import {
 import { Kbd } from '@/components/ui/kbd'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { formatShortcut, shortcutDefinitions } from '@/hooks/use-hotkeys'
-import { HelpCircle, Keyboard } from 'lucide-react'
-import { forwardRef } from 'react'
 
 const HelpDialog = forwardRef<HTMLButtonElement>(function HelpDialog(_, reference) {
   return (

@@ -1,4 +1,3 @@
-import type { ParseOptions } from '@/lib/math-parser'
 import {
   createContext,
   useCallback,
@@ -9,6 +8,8 @@ import {
   type ReactNode,
 } from 'react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
+
+import type { ParseOptions } from '@/lib/math-parser'
 
 export interface ExportColors {
   background: string

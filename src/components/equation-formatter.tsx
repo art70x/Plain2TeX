@@ -1,3 +1,9 @@
+import { toPng, toSvg } from 'html-to-image'
+import katex from 'katex'
+import { Check, ChevronDown, Copy, FileCode, Image } from 'lucide-react'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import { useDebounce } from 'use-debounce'
+
 import { Button } from '@/components/animate-ui/components/buttons/button'
 import { CopyButton } from '@/components/animate-ui/components/buttons/copy'
 import HelpDialog from '@/components/help-dialog'
@@ -9,15 +15,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Label } from '@/components/ui/label'
+
+import 'katex/dist/katex-swap.min.css'
 import { useSettings } from '@/contexts/settings-context'
 import { formatShortcut, useHotkeys } from '@/hooks/use-hotkeys'
 import { parseExpression } from '@/lib/math-parser'
-import { toPng, toSvg } from 'html-to-image'
-import katex from 'katex'
-import 'katex/dist/katex-swap.min.css'
-import { Check, ChevronDown, Copy, FileCode, Image } from 'lucide-react'
-import { useCallback, useMemo, useRef, useState } from 'react'
-import { useDebounce } from 'use-debounce'
 
 export default function EquationFormatter() {
   const [input, setInput] = useState('')
