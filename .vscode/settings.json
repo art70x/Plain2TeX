@@ -1,7 +1,7 @@
 {
   "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.patterns": {
-    "vite.config.*": "prettier*, eslint*, pwa-assets.config.ts, .editorconfig",
+    "vite.config.*": "oxfmt*, eslint*, pwa-assets.config.ts, .editorconfig",
     "tsconfig.json": "tsconfig.*.json",
     "package.json": "pnpm*"
   },
