@@ -1,6 +1,7 @@
+import { fileURLToPath, URL } from 'node:url'
+
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
-import { fileURLToPath, URL } from 'node:url'
 import AutoImport from 'unplugin-auto-import/vite'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
