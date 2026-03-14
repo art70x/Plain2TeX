@@ -1,7 +1,7 @@
 {
   "name": "app",
-  "private": true,
   "version": "0.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
     "predev": "nr lint && nr format && cls",
@@ -13,7 +13,8 @@
     "preview": "vite preview",
     "type-check": "tsc -b",
     "lint": "eslint . --fix --cache",
-    "format": "prettier --write --experimental-cli src/",
+    "format": "oxfmt src",
+    "format:check": "oxfmt src --check",
     "up": "taze major -I",
     "add": "shadcn add"
   },
@@ -55,11 +56,7 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
     "npm-run-all2": "^8.0.4",
-    "prettier": "^3.8.1",
-    "prettier-plugin-css-order": "^2.2.0",
-    "prettier-plugin-organize-attributes": "^1.0.0",
-    "prettier-plugin-organize-imports": "^4.3.0",
-    "prettier-plugin-tailwindcss": "^0.7.2",
+    "oxfmt": "^0.40.0",
     "shadcn": "^4.0.6",
     "svgo": "^4.0.1",
     "taze": "^19.10.0",
@@ -75,10 +72,10 @@
     "sharp": "^0.34.5",
     "sharp-ico": "^0.1.5"
   },
+  "packageManager": "pnpm@10.32.1",
   "pnpm": {
     "overrides": {
       "serialize-javascript": ">=7.0.4"
     }
-  },
-  "packageManager": "pnpm@10.32.1"
+  }
 }
