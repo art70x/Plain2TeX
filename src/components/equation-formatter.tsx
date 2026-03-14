@@ -25,13 +25,20 @@ export default function EquationFormatter() {
   const [exportDpi, setExportDpi] = useState(2)
   const helpTriggerReference = useRef<HTMLButtonElement>(null)
   const settingsTriggerReference = useRef<HTMLButtonElement>(null)
-  const { exportColors, fontSize } = useSettings()
+  const { exportColors, fontSize, implicitMul } = useSettings()
   const previewReference = useRef<HTMLDivElement>(null)
   const inputReference = useRef<HTMLTextAreaElement>(null)
 
   const [debouncedInput] = useDebounce(input, 120)
 
-  const { latex, error } = useMemo(() => parseExpression(debouncedInput), [debouncedInput])
+  // True while the user has typed ahead of the last settled parse.
+  // Used to show "Parsing…" only during the debounce window, not on errors.
+  const isPending = input !== debouncedInput
+
+  const { latex, error } = useMemo(
+    () => parseExpression(debouncedInput, { implicitMul }),
+    [debouncedInput, implicitMul],
+  )
 
   const renderedHtml = useMemo(() => {
     if (!latex) return ''
@@ -126,6 +133,16 @@ export default function EquationFormatter() {
     },
   ])
 
+  // Derive the placeholder message from the three distinct empty-preview states:
+  //   1. No input yet            → invite the user to type
+  //   2. Debounce still pending  → parsing in progress
+  //   3. Input settled, no HTML  → parse error (shown in error div) or truly empty
+  const emptyPlaceholder = !input
+    ? 'Your equation will appear here'
+    : isPending
+      ? 'Parsing\u2026'
+      : null // error already surfaced in the aria-live error div below
+
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-background select-none md:flex-row">
       {/* Skip to content link for a11y */}
@@ -170,7 +187,7 @@ export default function EquationFormatter() {
         {/* Centered preview */}
         <div
           ref={previewReference}
-          className="flex flex-1 items-center justify-center px-4"
+          className="flex flex-1 items-center justify-center border px-4"
           aria-live="polite"
           aria-label="Rendered equation"
           role="img"
@@ -182,9 +199,9 @@ export default function EquationFormatter() {
               dangerouslySetInnerHTML={{ __html: renderedHtml }}
             />
           ) : (
-            <span className="text-lg text-muted-foreground italic">
-              {input ? 'Parsing…' : 'Your equation will appear here'}
-            </span>
+            emptyPlaceholder && (
+              <span className="text-lg text-muted-foreground italic">{emptyPlaceholder}</span>
+            )
           )}
         </div>
 
@@ -261,7 +278,7 @@ export default function EquationFormatter() {
               LaTeX Output
             </p>
             <div className="relative">
-              <code className="block border border-border bg-card p-3 font-mono text-sm break-all text-foreground select-text">
+              <code className="block rounded-sm border border-border bg-card p-4 font-mono text-sm break-all text-foreground select-all">
                 {latex}
               </code>
               <CopyButton

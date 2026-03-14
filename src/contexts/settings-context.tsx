@@ -1,3 +1,4 @@
+import type { ParseOptions } from '@/lib/math-parser'
 import {
   createContext,
   useCallback,
@@ -18,22 +19,23 @@ interface Settings {
   darkMode: boolean
   exportColors: ExportColors
   fontSize: number
+  implicitMul: ParseOptions['implicitMul']
 }
 
 interface SettingsContextValue extends Settings {
   setDarkMode: (v: boolean) => void
   setExportColors: (c: ExportColors) => void
   setFontSize: (v: number) => void
+  setImplicitMul: (v: ParseOptions['implicitMul']) => void
   // Install
   canInstall: boolean
   installPwa: () => Promise<void>
-  // SW update lifecycle — exposed so UI can show a "reload" prompt
+  // SW update lifecycle
   needRefresh: boolean
   offlineReady: boolean
   updateServiceWorker: (reloadPage?: boolean) => Promise<void>
 }
 
-// BeforeInstallPromptEvent is not in the standard lib — declare it locally.
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
@@ -43,8 +45,9 @@ const STORAGE_KEY = 'eq-settings'
 
 const defaults: Settings = {
   darkMode: false,
-  exportColors: { background: '#F8F8F8', text: '#1A1A1A' },
+  exportColors: { background: '#f4f4f5', text: '#18181b' },
   fontSize: 2,
+  implicitMul: 'cdot',
 }
 
 function load(): Settings {
@@ -62,11 +65,9 @@ const SettingsContext = createContext<SettingsContextValue | null>(null)
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>(load)
 
-  // Internal ref — not exposed on context.
   const deferredPromptReference = useRef<BeforeInstallPromptEvent | null>(null)
   const [canInstall, setCanInstall] = useState(false)
 
-  // vite-plugin-pwa — service worker registration + update lifecycle.
   const {
     needRefresh: [needRefresh],
     offlineReady: [offlineReady],
@@ -80,29 +81,23 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     },
   })
 
-  // Persist settings
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
   }, [settings])
 
-  // Dark mode class on <html>
   useEffect(() => {
     document.documentElement.classList.toggle('dark', settings.darkMode)
   }, [settings.darkMode])
 
-  // Native browser install prompt — vite-plugin-pwa does not manage this event.
   useEffect(() => {
     const handler = (event: Event) => {
       event.preventDefault()
       deferredPromptReference.current = event as BeforeInstallPromptEvent
       setCanInstall(true)
     }
-    globalThis.addEventListener('beforeinstallprompt', handler)
-
-    // Hide install button if the app is already installed.
     const installedHandler = () => setCanInstall(false)
+    globalThis.addEventListener('beforeinstallprompt', handler)
     globalThis.addEventListener('appinstalled', installedHandler)
-
     return () => {
       globalThis.removeEventListener('beforeinstallprompt', handler)
       globalThis.removeEventListener('appinstalled', installedHandler)
@@ -126,6 +121,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     [],
   )
   const setFontSize = useCallback((v: number) => setSettings((s) => ({ ...s, fontSize: v })), [])
+  const setImplicitMul = useCallback(
+    (v: ParseOptions['implicitMul']) => setSettings((s) => ({ ...s, implicitMul: v })),
+    [],
+  )
 
   return (
     <SettingsContext.Provider
@@ -134,6 +133,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         setDarkMode,
         setExportColors,
         setFontSize,
+        setImplicitMul,
         canInstall,
         installPwa,
         needRefresh,

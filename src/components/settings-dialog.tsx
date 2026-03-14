@@ -13,6 +13,7 @@ import { Kbd } from '@/components/ui/kbd'
 import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useSettings } from '@/contexts/settings-context'
+import { formatShortcut } from '@/hooks/use-hotkeys'
 import { Download, Moon, Palette, Settings, Sun, Type } from 'lucide-react'
 import { forwardRef } from 'react'
 
@@ -32,6 +33,8 @@ const SettingsDialog = forwardRef<HTMLButtonElement>(function SettingsDialog(_, 
     setExportColors,
     fontSize,
     setFontSize,
+    implicitMul,
+    setImplicitMul,
     canInstall,
     installPwa,
   } = useSettings()
@@ -78,6 +81,23 @@ const SettingsDialog = forwardRef<HTMLButtonElement>(function SettingsDialog(_, 
                 Dark Mode
               </Label>
               <Switch id="dark-mode-switch" checked={darkMode} onCheckedChange={setDarkMode} />
+            </div>
+          </div>
+
+          {/* Implicit Multiplication */}
+          <div className="border-b border-border px-6 py-4">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="implicit-mul-switch" className="flex flex-col gap-0.5">
+                <span className="text-sm font-semibold text-foreground">Multiplication Dot</span>
+                <span className="text-xs text-muted-foreground">
+                  {implicitMul === 'cdot' ? '2x → 2 · x' : '2x → 2x'}
+                </span>
+              </Label>
+              <Switch
+                id="implicit-mul-switch"
+                checked={implicitMul === 'cdot'}
+                onCheckedChange={(checked) => setImplicitMul(checked ? 'cdot' : 'none')}
+              />
             </div>
           </div>
 
