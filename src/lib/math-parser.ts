@@ -4,6 +4,8 @@
  * implicit multiplication, constants, and subscripts.
  */
 
+// ─── Maps & Sets ─────────────────────────────────────────────────────────────
+
 const GREEK_MAP: Record<string, string> = {
   alpha: String.raw`\alpha`,
   beta: String.raw`\beta`,
@@ -63,6 +65,20 @@ const FUNCTIONS = new Set([
   'int',
 ])
 
+/** Operators at additive precedence — act as fraction numerator boundaries. */
+const ADDITIVE_OPS = new Set(['+', '-', '±', '=', '<', '>', '<=', '>=', '!='])
+
+/** Token types that can start an implicit-multiplication RHS. */
+const IMPLICIT_MUL_STARTERS = new Set<Token['type']>([
+  'number',
+  'variable',
+  'greek',
+  'function',
+  'lparen',
+])
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
 type Token = {
   type:
     | 'number'
@@ -78,17 +94,33 @@ type Token = {
   value: string
 }
 
+export interface ParseOptions {
+  /**
+   * Controls the symbol emitted for implicit multiplication.
+   *   'cdot'  → 2x becomes `2 \cdot x`   (default)
+   *   'none'  → 2x becomes `2x`
+   */
+  implicitMul: 'cdot' | 'none'
+}
+
+const DEFAULT_OPTIONS: ParseOptions = {
+  implicitMul: 'cdot',
+}
+
 export interface ParseResult {
   latex: string
   error: string | null
 }
 
+// ─── Tokenizer ────────────────────────────────────────────────────────────────
+
 function tokenize(input: string): Token[] {
+  const normalized = input.replace(/\+-/g, '±')
   const tokens: Token[] = []
   let index = 0
 
-  while (index < input.length) {
-    const ch = input[index]
+  while (index < normalized.length) {
+    const ch = normalized[index]
 
     if (/\s/.test(ch)) {
       index++
@@ -97,11 +129,14 @@ function tokenize(input: string): Token[] {
 
     if (
       /[0-9]/.test(ch) ||
-      (ch === '.' && index + 1 < input.length && /[0-9]/.test(input[index + 1]))
+      (ch === '.' && index + 1 < normalized.length && /[0-9]/.test(normalized[index + 1]))
     ) {
       let number_ = ''
-      while (index < input.length && (/[0-9]/.test(input[index]) || input[index] === '.')) {
-        number_ += input[index]
+      while (
+        index < normalized.length &&
+        (/[0-9]/.test(normalized[index]) || normalized[index] === '.')
+      ) {
+        number_ += normalized[index]
         index++
       }
       tokens.push({ type: 'number', value: number_ })
@@ -110,8 +145,8 @@ function tokenize(input: string): Token[] {
 
     if (/[a-zA-Z]/.test(ch)) {
       let word = ''
-      while (index < input.length && /[a-zA-Z]/.test(input[index])) {
-        word += input[index]
+      while (index < normalized.length && /[a-zA-Z]/.test(normalized[index])) {
+        word += normalized[index]
         index++
       }
 
@@ -121,11 +156,7 @@ function tokenize(input: string): Token[] {
         tokens.push({ type: 'function', value: word })
       } else if (GREEK_MAP[word]) {
         tokens.push({ type: 'greek', value: word })
-      } else if (word === 'e' && (index >= input.length || input[index] !== 'x')) {
-        // 'e' as Euler's number unless followed by more letters
-        tokens.push({ type: 'variable', value: 'e' })
       } else {
-        // Split multi-char variables into individual chars for implicit multiplication
         for (const c of word) {
           tokens.push({ type: 'variable', value: c })
         }
@@ -158,11 +189,10 @@ function tokenize(input: string): Token[] {
       index++
       continue
     }
-    if (['+', '-', '*', '/', '=', '<', '>', '!'].includes(ch)) {
-      // Check for !=, <=, >=
-      if (index + 1 < input.length && input[index + 1] === '=') {
-        const op = ch + '='
-        tokens.push({ type: 'operator', value: op })
+
+    if (['+', '-', '±', '*', '/', '=', '<', '>', '!'].includes(ch)) {
+      if (index + 1 < normalized.length && normalized[index + 1] === '=') {
+        tokens.push({ type: 'operator', value: ch + '=' })
         index += 2
         continue
       }
@@ -171,12 +201,13 @@ function tokenize(input: string): Token[] {
       continue
     }
 
-    // Unknown character — skip
     index++
   }
 
   return tokens
 }
+
+// ─── Parenthesis guard ────────────────────────────────────────────────────────
 
 function checkParentheses(tokens: Token[]): string | null {
   let depth = 0
@@ -189,257 +220,215 @@ function checkParentheses(tokens: Token[]): string | null {
   return null
 }
 
-function tokensToLatex(tokens: Token[]): string {
-  let result = ''
-
-  for (let index = 0; index < tokens.length; index++) {
-    const t = tokens[index]
-    const previous = index > 0 ? tokens[index - 1] : null
-    const next = index + 1 < tokens.length ? tokens[index + 1] : null
-
-    // Implicit multiplication: number before variable/greek/function/lparen, or variable before lparen
-    if (previous && needsImplicitMul(previous, t)) {
-      result += String.raw` \cdot `
-    }
-
-    switch (t.type) {
-      case 'number': {
-        result += t.value
-        break
-      }
-
-      case 'variable': {
-        result += t.value
-        break
-      }
-
-      case 'greek': {
-        result += GREEK_MAP[t.value] || t.value
-        break
-      }
-
-      case 'function': {
-        result += t.value === 'sqrt' ? String.raw`\sqrt` : `\\${t.value}`
-        break
-      }
-
-      case 'operator': {
-        result += operatorToLatex(t.value)
-        break
-      }
-
-      case 'lparen': {
-        result += String.raw`\left(`
-        break
-      }
-
-      case 'rparen': {
-        result += String.raw`\right)`
-        break
-      }
-
-      case 'caret': {
-        result += '^'
-        // Wrap the next token/group in braces
-        if (next) {
-          if (next.type === 'lparen') {
-            // Find matching paren and wrap content
-            const group = extractGroup(tokens, index + 1)
-            result += `{${tokensToLatex(group.inner)}}`
-            index = group.endIndex
-          } else {
-            result += `{${tokenToLatex(next)}}`
-            index++
-          }
-        }
-        break
-      }
-
-      case 'underscore': {
-        result += '_'
-        if (next) {
-          if (next.type === 'lparen') {
-            const group = extractGroup(tokens, index + 1)
-            result += `{${tokensToLatex(group.inner)}}`
-            index = group.endIndex
-          } else {
-            result += `{${tokenToLatex(next)}}`
-            index++
-          }
-        }
-        break
-      }
-
-      case 'comma': {
-        result += ', '
-        break
-      }
-    }
-  }
-
-  return result
-}
-
-function needsImplicitMul(previous: Token, current: Token): boolean {
-  const previousIsValue = ['number', 'variable', 'greek', 'rparen'].includes(previous.type)
-  const currentIsValue = ['number', 'variable', 'greek', 'function', 'lparen'].includes(
-    current.type,
-  )
-  return previousIsValue && currentIsValue
-}
+// ─── Operator helper ──────────────────────────────────────────────────────────
 
 function operatorToLatex(op: string): string {
   switch (op) {
-    case '*': {
+    case '*':
       return String.raw` \times `
-    }
-    case '/': {
+    case '/':
       return ' / '
-    }
-    case '+': {
+    case '+':
       return ' + '
-    }
-    case '-': {
+    case '±':
+      return String.raw` \pm `
+    case '-':
       return ' - '
-    }
-    case '=': {
+    case '=':
       return ' = '
-    }
-    case '<': {
+    case '<':
       return ' < '
-    }
-    case '>': {
+    case '>':
       return ' > '
-    }
-    case '<=': {
+    case '<=':
       return String.raw` \leq `
-    }
-    case '>=': {
+    case '>=':
       return String.raw` \geq `
-    }
-    case '!=': {
+    case '!=':
       return String.raw` \neq `
-    }
-    default: {
+    default:
       return ` ${op} `
-    }
   }
 }
 
-function tokenToLatex(t: Token): string {
-  if (t.type === 'greek') return GREEK_MAP[t.value] || t.value
-  if (t.type === 'function') return t.value === 'sqrt' ? String.raw`\sqrt` : `\\${t.value}`
-  return t.value
-}
+// ─── Recursive-descent renderer ──────────────────────────────────────────────
 
-function extractGroup(tokens: Token[], startIndex: number): { inner: Token[]; endIndex: number } {
-  let depth = 0
-  const inner: Token[] = []
-  for (let index = startIndex; index < tokens.length; index++) {
-    if (tokens[index].type === 'lparen') {
-      if (depth > 0) inner.push(tokens[index])
-      depth++
-    } else if (tokens[index].type === 'rparen') {
-      depth--
-      if (depth === 0) return { inner, endIndex: index }
-      inner.push(tokens[index])
-    } else {
-      inner.push(tokens[index])
-    }
-  }
-  return { inner, endIndex: tokens.length - 1 }
-}
+class LatexRenderer {
+  private readonly tokens: Token[]
+  private readonly implicitMulSep: string
+  private pos = 0
 
-/**
- * Convert fractions: detect `a/b` patterns and convert to \frac{a}{b}
- */
-function convertFractions(tokens: Token[]): Token[] {
-  const result: Token[] = []
-
-  for (let index = 0; index < tokens.length; index++) {
-    if (tokens[index].type === 'operator' && tokens[index].value === '/') {
-      // Get numerator (previous token or group)
-      const numerator = popNumerator(result)
-      // Get denominator (next token or group)
-      const { denom, newIndex } = getDenominator(tokens, index + 1)
-
-      // Push a synthetic token representing the fraction
-      result.push({
-        type: 'variable',
-        value: String.raw`\frac{${numerator}}{${denom}}`,
-      })
-      index = newIndex
-    } else {
-      result.push(tokens[index])
-    }
+  constructor(tokens: Token[], options: ParseOptions) {
+    this.tokens = tokens
+    // Resolve the separator string once at construction — no per-token branching.
+    this.implicitMulSep = options.implicitMul === 'cdot' ? String.raw` \cdot ` : ''
   }
 
-  return result
-}
+  render(): string {
+    return this.parseAdditive()
+  }
 
-function popNumerator(tokens: Token[]): string {
-  if (tokens.length === 0) return '?'
-  const last = tokens.at(-1)!
+  private peek(): Token | null {
+    return this.pos < this.tokens.length ? this.tokens[this.pos] : null
+  }
 
-  if (last.type === 'rparen') {
-    // Find matching lparen
-    let depth = 0
-    let start = tokens.length - 1
-    for (let index = tokens.length - 1; index >= 0; index--) {
-      if (tokens[index].type === 'rparen') depth++
-      if (tokens[index].type === 'lparen') depth--
-      if (depth === 0) {
-        start = index
-        break
+  private consume(): Token {
+    return this.tokens[this.pos++]
+  }
+
+  private parseAdditive(): string {
+    const parts: string[] = [this.parseMultiplicative()]
+
+    while (true) {
+      const t = this.peek()
+      if (!t || t.type !== 'operator' || !ADDITIVE_OPS.has(t.value)) break
+      this.consume()
+      parts.push(operatorToLatex(t.value))
+      parts.push(this.parseMultiplicative())
+    }
+
+    return parts.join('')
+  }
+
+  private parseMultiplicative(): string {
+    const parts: string[] = [this.parseUnary()]
+
+    while (true) {
+      const t = this.peek()
+      if (!t) break
+
+      if (t.type === 'operator' && t.value === '/') {
+        this.consume()
+        const numerator = parts.join('')
+        const denominator = this.parseUnary()
+        parts.length = 0
+        parts.push(`\\frac{${numerator}}{${denominator}}`)
+        continue
       }
+
+      if (t.type === 'operator' && t.value === '*') {
+        this.consume()
+        parts.push(String.raw` \times `)
+        parts.push(this.parseUnary())
+        continue
+      }
+
+      if (IMPLICIT_MUL_STARTERS.has(t.type)) {
+        parts.push(this.implicitMulSep)
+        parts.push(this.parseUnary())
+        continue
+      }
+
+      break
     }
-    const group = tokens.splice(start)
-    return tokensToLatex(group.slice(1, -1)) // Remove parens
+
+    return parts.join('')
   }
 
-  const t = tokens.pop()!
-  return tokenToLatex(t)
-}
-
-function getDenominator(tokens: Token[], index: number): { denom: string; newIndex: number } {
-  if (index >= tokens.length) return { denom: '?', newIndex: index - 1 }
-
-  if (tokens[index].type === 'lparen') {
-    const group = extractGroup(tokens, index)
-    return { denom: tokensToLatex(group.inner), newIndex: group.endIndex }
+  private parseUnary(): string {
+    const t = this.peek()
+    if (t?.type === 'operator' && (t.value === '-' || t.value === '+')) {
+      this.consume()
+      return t.value + this.parsePower()
+    }
+    return this.parsePower()
   }
 
-  return { denom: tokenToLatex(tokens[index]), newIndex: index }
+  private parsePower(): string {
+    const parts: string[] = [this.parseAtom()]
+
+    while (true) {
+      const t = this.peek()
+      if (t?.type === 'caret') {
+        this.consume()
+        parts.push(`^{${this.parseAtom()}}`)
+        continue
+      }
+      if (t?.type === 'underscore') {
+        this.consume()
+        parts.push(`_{${this.parseAtom()}}`)
+        continue
+      }
+      break
+    }
+
+    return parts.join('')
+  }
+
+  private parseAtom(): string {
+    const t = this.peek()
+    if (!t) return ''
+
+    if (t.type === 'number') {
+      this.consume()
+      return t.value
+    }
+    if (t.type === 'variable') {
+      this.consume()
+      return t.value
+    }
+    if (t.type === 'comma') {
+      this.consume()
+      return ', '
+    }
+
+    if (t.type === 'greek') {
+      this.consume()
+      return GREEK_MAP[t.value] ?? t.value
+    }
+
+    if (t.type === 'lparen') {
+      this.consume()
+      const inner = this.parseAdditive()
+      if (this.peek()?.type === 'rparen') this.consume()
+      return String.raw`\left(` + inner + String.raw`\right)`
+    }
+
+    if (t.type === 'function') {
+      this.consume()
+
+      if (t.value === 'sqrt') {
+        if (this.peek()?.type === 'lparen') {
+          this.consume()
+          const inner = this.parseAdditive()
+          if (this.peek()?.type === 'rparen') this.consume()
+          return `\\sqrt{${inner}}`
+        }
+        return `\\sqrt{${this.parseAtom()}}`
+      }
+
+      if (this.peek()?.type === 'lparen') {
+        this.consume()
+        const inner = this.parseAdditive()
+        if (this.peek()?.type === 'rparen') this.consume()
+        return `\\${t.value}\\left(${inner}\\right)`
+      }
+
+      return `\\${t.value}`
+    }
+
+    return ''
+  }
 }
 
-export function parseExpression(input: string): ParseResult {
+// ─── Public API ───────────────────────────────────────────────────────────────
+
+export function parseExpression(input: string, options?: Partial<ParseOptions>): ParseResult {
   const trimmed = input.trim()
 
-  if (!trimmed) {
-    return { latex: '', error: null }
-  }
+  if (!trimmed) return { latex: '', error: null }
+  if (trimmed.length > 5_000) return { latex: '', error: 'Expression too long' }
 
-  // Optional: protect against very large input
-  if (trimmed.length > 5000) {
-    return { latex: '', error: 'Expression too long' }
-  }
+  const resolvedOptions: ParseOptions = { ...DEFAULT_OPTIONS, ...options }
 
   try {
     const tokens = tokenize(trimmed)
-
-    if (tokens.length === 0) {
-      return { latex: '', error: 'Empty expression' }
-    }
+    if (tokens.length === 0) return { latex: '', error: 'Empty expression' }
 
     const parenError = checkParentheses(tokens)
-    if (parenError) {
-      return { latex: '', error: parenError }
-    }
+    if (parenError) return { latex: '', error: parenError }
 
-    const fractionTokens = convertFractions([...tokens])
-    const latex = tokensToLatex(fractionTokens)
-
-    return { latex, error: null }
+    return { latex: new LatexRenderer(tokens, resolvedOptions).render(), error: null }
   } catch (error) {
     console.error('Expression parsing failed:', error)
     return { latex: '', error: 'Invalid expression' }
